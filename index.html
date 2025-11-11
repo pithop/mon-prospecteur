@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outil Prospecteur</title>
+    <style>
+        :root {
+            --color-primary: #007bff;
+            --color-secondary: #6c757d;
+            --color-success: #28a745;
+            --color-warning: #ffc107;
+            --color-light: #f8f9fa;
+            --color-dark: #343a40;
+            --color-bg: #f4f7f6;
+            --color-text: #212529;
+            --border-radius: 8px;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--color-dark);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        header .upload-section {
+            font-size: 14px;
+        }
+        
+        header .upload-section a {
+            color: var(--color-warning);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        header .upload-section a:hover {
+            text-decoration: underline;
+        }
+
+        #file-input { display: none; }
+
+        main {
+            max-width: 1600px;
+            margin: 20px auto;
+            padding: 20px 40px;
+        }
+
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--color-primary);
+            border-bottom: 2px solid var(--color-light);
+            padding-bottom: 10px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.15);
+        }
+
+        .quick-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .quick-filters button {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .quick-filters button.primary { background-color: var(--color-primary); color: white; }
+        .quick-filters button.secondary { background-color: var(--color-secondary); color: white; }
+        .quick-filters button.warning { background-color: var(--color-warning); color: var(--color-dark); }
+        .quick-filters button.light { background-color: var(--color-light); color: var(--color-dark); border: 1px solid #ddd; }
+        
+        .quick-filters button:hover {
+            opacity: 0.85;
+            transform: translateY(-2px);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #stats {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .export-buttons button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        #export-csv { background-color: var(--color-success); color: white; }
+        #export-json { background-color: var(--color-warning); color: var(--color-dark); }
+
+        .table-wrapper {
+            max-height: 700px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border-bottom: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        tr:last-child td { border-bottom: none; }
+
+        th {
+            background-color: var(--color-light);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: #fdfdfd;
+        }
+        
+        tbody tr:hover {
+            background-color: #f0f8ff;
+        }
+
+        td a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        td a:hover {
+            text-decoration: underline;
+        }
+        
+        #loading-message {
+            font-size: 1.2rem;
+            color: var(--color-secondary);
+            text-align: center;
+            padding: 50px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Outil Prospecteur</h1>
+        <div class="upload-section">
+            <a id="upload-link">Charger un autre fichier</a>
+            <input type="file" id="file-input" accept=".json" onchange="handleFile()">
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h2>Filtres Rapides (Pour votre ami)</h2>
+            <div class="quick-filters">
+                <button class="primary" onclick="setWebsiteFilter('prospects')">Prospects (Sans site / Tiers)</button>
+                <button class="secondary" onclick="setWebsiteFilter('no_website')">Seulement "Aucun site" (vide)</button>
+                <button class="warning" onclick="setWebsiteFilter('third_party')">Seulement "Site Tiers" (FB, Insta...)</button>
+                <button class="light" onclick="setWebsiteFilter('all')">Afficher tout</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <h2>Affiner la recherche</h2>
+            <div class="filters-grid">
+                <div class="control-group">
+                    <label for="filter-website">Statut du Site Web (Automatique)</label>
+                    <select id="filter-website" onchange="applyFilters()">
+                        <option value="all">Tous</option>
+                        <option value="prospects">Prospects (Pas de site / Tiers)</option>
+                        <option value="no_website">Aucun site (Vide)</option>
+                        <option value="third_party">Site Tiers (Facebook, Insta, etc.)</option>
+                        <option value="has_website">A un vrai site web</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="filter-name">Rechercher par Nom (titre)</label>
+                    <input type="text" id="filter-name" onkeyup="applyFilters()">
+                </div>
+                <div class="control-group">
+                    <label for="filter-phone">Rechercher par Téléphone</label>
+                    <input type="text" id="filter-phone" onkeyup="applyFilters()">
+                </div>
+                <div class="control-group">
+                    <label for="filter-category">Rechercher par Catégorie</label>
+                    <input type="text" id="filter-category" onkeyup="applyFilters()">
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="results-header">
+                <div id="stats">Chargement des données...</div>
+                <div class="export-buttons">
+                    <button id="export-csv" onclick="exportCSV()">Télécharger CSV (pour Excel)</button>
+                    <button id="export-json" onclick="exportJSON()">Télécharger JSON</button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="results-table">
+                    <thead>
+                        <tr id="table-headers"></tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr><td colspan="10" id="loading-message">Chargement des données par défaut...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let fullData = [];
+        let filteredData = [];
+        
+        // Domaines à considérer comme "non-pro" (sites tiers, réseaux sociaux, plateformes)
+        const thirdPartyDomains = [
+            'facebook.com', 'instagram.com', 'linktr.ee', 'eatbu.com', 'wafflefactory.com',
+            'ubereats.com', 'deliveroo.fr', 'tripadvisor.fr', 'pagesjaunes.fr', 'crepetouch.com',
+            'just-eat.fr', 'thefork.fr', 'snapchat.com', 'tiktok.com', 'amorino.com',
+            'goo.gle', 'bit.ly', 'tastycloud.menu', 'octotable.com', 'm.facebook.com',
+            'webshop.fulleapps.io', 'surge.sh', 'jimdofree.com', 'linktr.ee',
+            'byclickeat.fr', 'dood.com', 'delicity.com', 'belorder.com', 'e-monsite.com',
+            'commander1.com', 'eatbu.com', 'wordpress.com', 'blogspot.com', 'sumupstore.com',
+            'bento.me', 'wixsite.com', 'google.com', 'zenchef.com'
+        ];
+
+        // --- DÉMARRAGE DE L'APPLICATION ---
+
+        window.onload = () => {
+            // Lier le bouton "Charger un autre fichier"
+            document.getElementById('upload-link').onclick = () => {
+                document.getElementById('file-input').click();
+                return false; // Empêche le lien de remonter la page
+            };
+            
+            // Charger les données par défaut
+            loadDefaultData();
+        };
+
+        function loadDefaultData() {
+            // C'est le nom de votre fichier JSON
+            fetch('dataset.json') 
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}. Assurez-vous que le fichier 'dataset.json' existe.`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    initializeData(data, "Données par défaut chargées.");
+                })
+                .catch(e => {
+                    console.error("Erreur de chargement des données par défaut:", e);
+                    document.getElementById('loading-message').innerText = `Erreur : Impossible de charger le fichier 'dataset.json'. ${e.message}`;
+                    alert(`Erreur : Impossible de charger le fichier 'dataset.json'. Assurez-vous qu'il est bien renommé et dans le même dossier que 'index.html'.`);
+                });
+        }
+        
+        function handleFile() {
+            const file = document.getElementById('file-input').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    initializeData(data, `Fichier '${file.name}' chargé.`);
+                } catch (e) {
+                    alert("Erreur lors de la lecture du fichier JSON : " + e.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function initializeData(data, message) {
+            if (!Array.isArray(data)) {
+                alert("Erreur : Le fichier JSON doit être un tableau (Array) d'objets.");
+                return;
+            }
+            fullData = data;
+            filteredData = data;
+            document.getElementById('stats').innerText = message;
+            populateHeaders();
+            applyFilters();
+        }
+
+        function populateHeaders() {
+            const headers = document.getElementById('table-headers');
+            headers.innerHTML = '';
+            if (fullData.length === 0) return;
+            
+            // Obtenir les clés du premier objet pour créer les en-têtes
+            const keys = Object.keys(fullData[0]);
+            for (const key of keys) {
+                headers.innerHTML += `<th>${key}</th>`;
+            }
+        }
+
+        // --- FILTRES ---
+
+        function setWebsiteFilter(filterValue) {
+            // Met à jour le dropdown
+            document.getElementById('filter-website').value = filterValue;
+            // Applique les filtres
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const nameFilter = document.getElementById('filter-name').value.toLowerCase();
+            const phoneFilter = document.getElementById('filter-phone').value.toLowerCase();
+            const categoryFilter = document.getElementById('filter-category').value.toLowerCase();
+            const websiteFilter = document.getElementById('filter-website').value;
+
+            filteredData = fullData.filter(item => {
+                const title = (item.title || '').toLowerCase();
+                const phone = (item.phone || '').toLowerCase();
+                const category = (item.categoryName || '').toLowerCase();
+                const website = item.website || '';
+
+                // Filtres de recherche
+                if (nameFilter && !title.includes(nameFilter)) return false;
+                if (phoneFilter && !phone.includes(phoneFilter)) return false;
+                if (categoryFilter && !category.includes(categoryFilter)) return false;
+                
+                // Filtre par site web
+                const isThirdParty = website ? thirdPartyDomains.some(domain => website.includes(domain)) : false;
+                const hasRealWebsite = website && !isThirdParty;
+
+                if (websiteFilter === 'no_website' && website) return false; // Doit être vide
+                if (websiteFilter === 'third_party' && !isThirdParty) return false; // Doit être tiers
+                if (websiteFilter === 'has_website' && !hasRealWebsite) return false; // Doit être vrai site
+                if (websiteFilter === 'prospects' && hasRealWebsite) return false; // Ne doit PAS avoir de vrai site
+                
+                return true; // L'élément passe tous les filtres
+            });
+
+            renderTable();
+        }
+
+        function renderTable() {
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = '';
+            
+            document.getElementById('stats').innerText = `Affichage de ${filteredData.length} sur ${fullData.length} résultats.`;
+
+            if (filteredData.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="100%" style="text-align: center; padding: 30px;">Aucun résultat ne correspond à vos filtres.</td></tr>`;
+                return;
+            }
+
+            const keys = Object.keys(fullData[0]);
+            
+            for (const item of filteredData) {
+                let row = '<tr>';
+                for (const key of keys) {
+                    let value = item[key];
+                    if (value === null || value === undefined) {
+                        value = '';
+                    }
+                    // Rendre les URL cliquables
+                    if (typeof value === 'string' && value.startsWith('http')) {
+                        value = `<a href="${value}" target="_blank" rel="noopener noreferrer">${value.substring(0, 50)}...</a>`;
+                    }
+                    row += `<td>${value}</td>`;
+                }
+                row += '</tr>';
+                tableBody.innerHTML += row;
+            }
+        }
+
+        // --- EXPORT ---
+
+        function exportCSV() {
+            if (filteredData.length === 0) {
+                alert("Aucune donnée à exporter.");
+                return;
+            }
+
+            const keys = Object.keys(filteredData[0]);
+            let csvContent = '\uFEFF'; // BOM pour UTF-8 (assure compatibilité Excel)
+            csvContent += keys.join(';') + '\n'; // En-têtes avec ;
+
+            for (const item of filteredData) {
+                let row = [];
+                for (const key of keys) {
+                    let value = item[key];
+                    if (value === null || value === undefined) {
+                        value = '';
+                    }
+                    // Gérer les guillemets et les points-virgules
+                    value = `"${String(value).replace(/"/g, '""')}"`;
+                    row.push(value);
+                }
+                csvContent += row.join(';') + '\n';
+            }
+
+            downloadFile(csvContent, 'prospection_filtree.csv', 'text/csv;charset=utf-8;');
+        }
+
+        function exportJSON() {
+            if (filteredData.length === 0) {
+                alert("Aucune donnée à exporter.");
+                return;
+            }
+            const jsonContent = JSON.stringify(filteredData, null, 2);
+            downloadFile(jsonContent, 'prospection_filtree.json', 'application/json');
+        }
+
+        function downloadFile(content, fileName, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+    </script>
+</body>
+</html>
